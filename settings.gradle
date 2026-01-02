@@ -1,0 +1,2 @@
+rootProject.name = "TV Floating Nav"
+include ':app'
