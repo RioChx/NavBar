@@ -3,13 +3,9 @@ package com.example.tvnavbar
 import android.graphics.Color
 import android.graphics.Typeface
 
-/**
- * MANDATORY: The single source of truth for all UI settings.
- * Synchronized with simulator values.
- */
 object MainOverride {
     var backgroundColor = 0xFF1A1A1A
-    var transparency = 85 // 0-100
+    var transparency = 85
     var scale = 1f
     var textColorTime = 0xFFFFFFFF
     var textColorDate = 0xFFB0B0B0
