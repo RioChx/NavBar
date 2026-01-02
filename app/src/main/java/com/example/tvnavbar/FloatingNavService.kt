@@ -8,6 +8,8 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.text.SpannableString
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.view.*
 import android.widget.ImageView
@@ -60,7 +62,6 @@ class FloatingNavService : Service() {
         btnClose.visibility = View.GONE
         btnSettings.visibility = View.GONE
 
-        // Hover logic for extra controls
         floatingView.setOnHoverListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_HOVER_ENTER -> {
@@ -75,17 +76,12 @@ class FloatingNavService : Service() {
             false
         }
 
-        // Navigation Actions
         floatingView.findViewById<ImageView>(R.id.btn_home).setOnClickListener {
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             startActivity(intent)
-        }
-        
-        floatingView.findViewById<ImageView>(R.id.btn_back).setOnClickListener {
-            // Back action requires Accessibility Service or Instrumentation
         }
 
         btnSettings.setOnClickListener {
@@ -97,7 +93,6 @@ class FloatingNavService : Service() {
             stopSelf()
         }
 
-        // Double Click to Minimize
         val clockContainer = floatingView.findViewById<View>(R.id.clock_container)
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -147,18 +142,29 @@ class FloatingNavService : Service() {
             override fun run() {
                 val cal = Calendar.getInstance()
                 val colon = if (blinkState) ":" else " "
-                val timeStr = SimpleDateFormat("hh" + "'" + colon + "'" + "mm a", Locale.US).format(cal.time)
+                
+                // Parts: Numeric Time, AM/PM, Date
+                val timeNumeric = SimpleDateFormat("hh" + "'" + colon + "'" + "mm", Locale.US).format(cal.time)
+                val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 val dateStr = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(cal.time)
                 
-                val span = SpannableString(timeStr)
-                if (timeStr.length > 3) {
-                    span.setSpan(RelativeSizeSpan(0.6f), timeStr.length - 2, timeStr.length, 0)
-                }
+                // Build styled time string (2 different text styles in one view)
+                val builder = SpannableStringBuilder()
+                builder.append(timeNumeric)
+                builder.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, builder.length, 0)
                 
-                tvTime.text = span
-                tvTime.setTextColor(MainOverride.textColorTime)
+                val ampmStart = builder.length
+                builder.append(ampm)
+                builder.setSpan(RelativeSizeSpan(0.5f), ampmStart, builder.length, 0)
+                builder.setSpan(ForegroundColorSpan(MainOverride.colorAmPm), ampmStart, builder.length, 0)
+                
+                tvTime.text = builder
+                tvTime.typeface = MainOverride.getTypeface()
+                
+                // 3rd style: Date
                 tvDate.text = dateStr
-                tvDate.setTextColor(MainOverride.textColorDate)
+                tvDate.setTextColor(MainOverride.colorDate)
+                tvDate.typeface = MainOverride.getTypeface()
                 
                 blinkState = !blinkState
                 handler.postDelayed(this, 1000)
