@@ -12,6 +12,10 @@ object MainOverride {
     var colorDate: Int = Color.parseColor("#b0b0b0")
     var fontType: String = "Roboto"
 
+    private var listener: (() -> Unit)? = null
+    fun setUpdateListener(l: () -> Unit) { listener = l }
+    fun notifyUpdate() { listener?.invoke() }
+
     fun getTypeface(): Typeface {
         return try {
             Typeface.create(fontType, Typeface.NORMAL)
