@@ -3,6 +3,7 @@ package com.example.tvnavbar
 import android.app.*
 import android.content.*
 import android.graphics.PixelFormat
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.*
 import android.text.*
@@ -25,7 +26,6 @@ class FloatingNavService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        // MUST be first for Android 13
         startForegroundSafe()
         
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -51,15 +51,14 @@ class FloatingNavService : Service() {
         try {
             windowManager.addView(floatingView, params)
         } catch (e: Exception) {
-            e.printStackTrace()
             stopSelf()
         }
     }
 
     private fun startForegroundSafe() {
-        val channelId = "tv_nav_v2"
+        val channelId = "tv_nav_channel_v3"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, "TV Nav Service", NotificationManager.IMPORTANCE_LOW)
+            val chan = NotificationChannel(channelId, "TV Bar Service", NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(chan)
         }
@@ -68,7 +67,7 @@ class FloatingNavService : Service() {
             .setContentTitle("Floating Navigation Active")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
-        startForeground(2002, notification)
+        startForeground(3003, notification)
     }
 
     private fun applyVisuals() {
@@ -106,6 +105,10 @@ class FloatingNavService : Service() {
             startActivity(intent)
         }
 
+        floatingView.findViewById<View>(R.id.btn_recents).setOnClickListener {
+            Toast.makeText(this, "Recents Triggered", Toast.LENGTH_SHORT).show()
+        }
+
         btnSettings.setOnClickListener {
             startService(Intent(this, ControlOverlayService::class.java))
         }
@@ -133,17 +136,17 @@ class FloatingNavService : Service() {
     }
 
     private fun setupDrag() {
-        var initialX = 0; var initialY = 0; var touchX = 0f; var touchY = 0f
+        var startX = 0; var startY = 0; var touchX = 0f; var touchY = 0f
         floatingView.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    initialX = params.x; initialY = params.y
+                    startX = params.x; startY = params.y
                     touchX = event.rawX; touchY = event.rawY
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - touchX).toInt()
-                    params.y = initialY + (event.rawY - touchY).toInt()
+                    params.x = startX + (event.rawX - touchX).toInt()
+                    params.y = startY + (event.rawY - touchY).toInt()
                     windowManager.updateViewLayout(floatingView, params)
                     true
                 }
@@ -164,7 +167,7 @@ class FloatingNavService : Service() {
                 
                 val ss = SpannableStringBuilder(timeStr)
                 ss.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, ss.length, 0)
-                ss.setSpan(StyleSpan(Typeface.BOLD), 0, ss.length, 0)
+                ss.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, ss.length, 0)
                 
                 val startAmPm = ss.length
                 ss.append(ampm)
