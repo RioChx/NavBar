@@ -3,6 +3,7 @@ package com.example.tvnavbar
 import android.app.*
 import android.content.*
 import android.graphics.PixelFormat
+import android.graphics.Typeface
 import android.os.*
 import android.text.*
 import android.text.style.*
@@ -24,8 +25,8 @@ class FloatingNavService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        // MANDATORY: Immediate foreground start for Android 13
-        startForegroundServiceSafe()
+        // MUST be first for Android 13
+        startForegroundSafe()
         
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_nav, null)
@@ -38,11 +39,11 @@ class FloatingNavService : Service() {
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = 300
-        params.y = 850
+        params.x = 400
+        params.y = 800
 
         setupUI()
-        setupDrag(floatingView, params)
+        setupDrag()
         startClock()
         
         MainOverride.setUpdateListener { applyVisuals() }
@@ -50,22 +51,24 @@ class FloatingNavService : Service() {
         try {
             windowManager.addView(floatingView, params)
         } catch (e: Exception) {
+            e.printStackTrace()
             stopSelf()
         }
     }
 
-    private fun startForegroundServiceSafe() {
-        val channelId = "floating_nav_v1"
+    private fun startForegroundSafe() {
+        val channelId = "tv_nav_v2"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, "Nav Service", NotificationManager.IMPORTANCE_MIN)
-            getSystemService(NotificationManager::class.java).createNotificationChannel(chan)
+            val chan = NotificationChannel(channelId, "TV Nav Service", NotificationManager.IMPORTANCE_LOW)
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(chan)
         }
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setContentTitle("Floating Bar Active")
-            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setContentTitle("Floating Navigation Active")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
-        startForeground(1001, notification)
+        startForeground(2002, notification)
     }
 
     private fun applyVisuals() {
@@ -81,23 +84,17 @@ class FloatingNavService : Service() {
         val btnClose = floatingView.findViewById<View>(R.id.btn_close)
         val btnSettings = floatingView.findViewById<View>(R.id.btn_settings)
         
-        // Initial state for Hover Logic
-        btnClose.visibility = View.GONE
-        btnSettings.visibility = View.GONE
+        btnClose.alpha = 0f
+        btnSettings.alpha = 0f
 
         floatingView.setOnHoverListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_HOVER_ENTER -> {
-                    btnClose.visibility = View.VISIBLE
-                    btnSettings.visibility = View.VISIBLE
                     btnClose.animate().alpha(1f).setDuration(200).start()
                     btnSettings.animate().alpha(1f).setDuration(200).start()
                 }
                 MotionEvent.ACTION_HOVER_EXIT -> {
-                    btnClose.animate().alpha(0f).setDuration(200).withEndAction {
-                        btnClose.visibility = View.GONE
-                        btnSettings.visibility = View.GONE
-                    }.start()
+                    btnClose.animate().alpha(0f).setDuration(200).start()
                     btnSettings.animate().alpha(0f).setDuration(200).start()
                 }
             }
@@ -105,7 +102,8 @@ class FloatingNavService : Service() {
         }
 
         floatingView.findViewById<View>(R.id.btn_home).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
         }
 
         btnSettings.setOnClickListener {
@@ -117,12 +115,11 @@ class FloatingNavService : Service() {
             stopSelf()
         }
 
-        // Minimize Logic
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 isMinimized = !isMinimized
                 floatingView.findViewById<View>(R.id.nav_buttons_container).visibility = if (isMinimized) View.GONE else View.VISIBLE
-                floatingView.findViewById<View>(R.id.divider_line).visibility = if (isMinimized) View.GONE else View.VISIBLE
+                floatingView.findViewById<View>(R.id.divider).visibility = if (isMinimized) View.GONE else View.VISIBLE
                 floatingView.findViewById<View>(R.id.tv_date).visibility = if (isMinimized) View.GONE else View.VISIBLE
                 return true
             }
@@ -135,19 +132,19 @@ class FloatingNavService : Service() {
         }
     }
 
-    private fun setupDrag(view: View, p: WindowManager.LayoutParams) {
+    private fun setupDrag() {
         var initialX = 0; var initialY = 0; var touchX = 0f; var touchY = 0f
-        view.setOnTouchListener { _, event ->
+        floatingView.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    initialX = p.x; initialY = p.y
+                    initialX = params.x; initialY = params.y
                     touchX = event.rawX; touchY = event.rawY
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    p.x = initialX + (event.rawX - touchX).toInt()
-                    p.y = initialY + (event.rawY - touchY).toInt()
-                    windowManager.updateViewLayout(view, p)
+                    params.x = initialX + (event.rawX - touchX).toInt()
+                    params.y = initialY + (event.rawY - touchY).toInt()
+                    windowManager.updateViewLayout(floatingView, params)
                     true
                 }
                 else -> false
@@ -162,10 +159,10 @@ class FloatingNavService : Service() {
             override fun run() {
                 val cal = Calendar.getInstance()
                 val colon = if (blinkState) ":" else " "
-                val timeBase = SimpleDateFormat("hh" + "'" + colon + "'" + "mm", Locale.US).format(cal.time)
+                val timeStr = SimpleDateFormat("hh" + "'" + colon + "'" + "mm", Locale.US).format(cal.time)
                 val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 
-                val ss = SpannableStringBuilder(timeBase)
+                val ss = SpannableStringBuilder(timeStr)
                 ss.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, ss.length, 0)
                 ss.setSpan(StyleSpan(Typeface.BOLD), 0, ss.length, 0)
                 
@@ -176,7 +173,6 @@ class FloatingNavService : Service() {
                 
                 tvTime.text = ss
                 tvTime.typeface = MainOverride.getTypeface()
-                
                 tvDate.text = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(cal.time)
                 tvDate.setTextColor(MainOverride.colorDate)
                 

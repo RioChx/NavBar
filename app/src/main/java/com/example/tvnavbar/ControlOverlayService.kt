@@ -28,29 +28,8 @@ class ControlOverlayService : Service() {
         )
         params.gravity = Gravity.CENTER
         
-        setupDrag()
         setupControls()
         windowManager.addView(controlView, params)
-    }
-
-    private fun setupDrag() {
-        var startX = 0; var startY = 0; var touchX = 0f; var touchY = 0f
-        controlView.findViewById<View>(R.id.control_header).setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    startX = params.x; startY = params.y
-                    touchX = event.rawX; touchY = event.rawY
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    params.x = startX + (event.rawX - touchX).toInt()
-                    params.y = startY + (event.rawY - touchY).toInt()
-                    windowManager.updateViewLayout(controlView, params)
-                    true
-                }
-                else -> false
-            }
-        }
     }
 
     private fun setupControls() {
