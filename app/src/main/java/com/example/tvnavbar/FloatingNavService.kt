@@ -1,13 +1,16 @@
 package com.example.tvnavbar
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
@@ -15,6 +18,7 @@ import android.view.*
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.app.NotificationCompat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,10 +30,24 @@ class FloatingNavService : Service() {
     private var blinkState = true
     private var isMinimized = false
 
+    companion object {
+        private const val CHANNEL_ID = "TvNavServiceChannel"
+        private const val NOTIFICATION_ID = 1
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("TV Nav Bar Active")
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .build()
+        
+        startForeground(NOTIFICATION_ID, notification)
+
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_nav, null)
         
@@ -49,11 +67,20 @@ class FloatingNavService : Service() {
         windowManager.addView(floatingView, params)
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val serviceChannel = NotificationChannel(
+                CHANNEL_ID, "TV Navigation Service Channel",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(serviceChannel)
+        }
+    }
+
     private fun setupUI() {
         val root = floatingView.findViewById<LinearLayout>(R.id.nav_root)
         root.setBackgroundResource(R.drawable.bg_nav_pill)
-        
-        // Fixed: MainOverride.backgroundColor is now Int
         root.background?.setTint(MainOverride.backgroundColor)
         root.alpha = MainOverride.transparency / 100f
         root.scaleX = MainOverride.scale
@@ -87,7 +114,12 @@ class FloatingNavService : Service() {
         }
 
         btnSettings.setOnClickListener {
-            startService(Intent(this, ControlOverlayService::class.java))
+            val intent = Intent(this, ControlOverlayService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
         }
 
         btnClose.setOnClickListener {
@@ -145,16 +177,12 @@ class FloatingNavService : Service() {
                 val cal = Calendar.getInstance()
                 val colon = if (blinkState) ":" else " "
                 
-                // Parts: Numeric Time, AM/PM, Date
                 val timeNumeric = SimpleDateFormat("hh" + "'" + colon + "'" + "mm", Locale.US).format(cal.time)
                 val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 val dateStr = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(cal.time)
                 
-                // Build styled time string
                 val builder = SpannableStringBuilder()
                 builder.append(timeNumeric)
-                
-                // Fixed: ForegroundColorSpan now receives Int
                 builder.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, builder.length, 0)
                 
                 val ampmStart = builder.length
@@ -165,7 +193,6 @@ class FloatingNavService : Service() {
                 tvTime.text = builder
                 tvTime.typeface = MainOverride.getTypeface()
                 
-                // Date styling
                 tvDate.text = dateStr
                 tvDate.setTextColor(MainOverride.colorDate)
                 tvDate.typeface = MainOverride.getTypeface()
