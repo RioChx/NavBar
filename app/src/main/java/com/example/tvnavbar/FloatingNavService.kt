@@ -35,14 +35,14 @@ class FloatingNavService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         params.y = 50
 
         setupUI()
-        setupHoverLogic()
+        setupDrag()
         startClock()
         windowManager.addView(floatingView, params)
     }
@@ -55,48 +55,8 @@ class FloatingNavService : Service() {
         root.scaleX = MainOverride.scale
         root.scaleY = MainOverride.scale
         
-        // Navigation Logic
-        floatingView.findViewById<ImageView>(R.id.btn_back).setOnClickListener {
-            // Simulated Back
-        }
-        floatingView.findViewById<ImageView>(R.id.btn_home).setOnClickListener {
-            val intent = Intent(Intent.ACTION_MAIN)
-            intent.addCategory(Intent.CATEGORY_HOME)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivity(intent)
-        }
-        
-        // Double Click Logic
-        val clockContainer = floatingView.findViewById<View>(R.id.clock_container)
-        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                toggleMinimize()
-                return true
-            }
-        })
-        clockContainer.setOnTouchListener { v, event ->
-            detector.onTouchEvent(event)
-            v.performClick()
-            true
-        }
-
-        floatingView.findViewById<ImageView>(R.id.btn_close).setOnClickListener { stopSelf() }
-        floatingView.findViewById<ImageView>(R.id.btn_settings).setOnClickListener {
-            // Decoupled settings would go here
-        }
-    }
-
-    private fun toggleMinimize() {
-        isMinimized = !isMinimized
-        val navButtons = floatingView.findViewById<View>(R.id.nav_buttons)
-        val tvDate = floatingView.findViewById<TextView>(R.id.tv_date)
-        navButtons.visibility = if (isMinimized) View.GONE else View.VISIBLE
-        tvDate.visibility = if (isMinimized) View.GONE else View.VISIBLE
-    }
-
-    private fun setupHoverLogic() {
-        val btnClose = floatingView.findViewById<View>(R.id.btn_close)
-        val btnSettings = floatingView.findViewById<View>(R.id.btn_settings)
+        val btnClose = floatingView.findViewById<ImageView>(R.id.btn_close)
+        val btnSettings = floatingView.findViewById<ImageView>(R.id.btn_settings)
         btnClose.visibility = View.GONE
         btnSettings.visibility = View.GONE
 
@@ -112,6 +72,64 @@ class FloatingNavService : Service() {
                 }
             }
             false
+        }
+
+        floatingView.findViewById<ImageView>(R.id.btn_home).setOnClickListener {
+            val intent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(intent)
+        }
+
+        btnSettings.setOnClickListener {
+            startService(Intent(this, ControlOverlayService::class.java))
+        }
+
+        btnClose.setOnClickListener {
+            stopService(Intent(this, ControlOverlayService::class.java))
+            stopSelf()
+        }
+
+        val clockContainer = floatingView.findViewById<View>(R.id.clock_container)
+        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                isMinimized = !isMinimized
+                floatingView.findViewById<View>(R.id.nav_buttons).visibility = if (isMinimized) View.GONE else View.VISIBLE
+                floatingView.findViewById<View>(R.id.tv_date).visibility = if (isMinimized) View.GONE else View.VISIBLE
+                return true
+            }
+        })
+        clockContainer.setOnTouchListener { v, event ->
+            detector.onTouchEvent(event)
+            v.performClick()
+            true
+        }
+    }
+
+    private fun setupDrag() {
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+
+        floatingView.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    params.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    windowManager.updateViewLayout(floatingView, params)
+                    true
+                }
+                else -> false
+            }
         }
     }
 

@@ -10,7 +10,6 @@ import android.widget.SeekBar
 import android.widget.TextView
 
 class ControlOverlayService : Service() {
-
     private lateinit var windowManager: WindowManager
     private lateinit var controlView: View
     private lateinit var params: WindowManager.LayoutParams
@@ -20,7 +19,6 @@ class ControlOverlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        
         controlView = LayoutInflater.from(this).inflate(R.layout.layout_control_overlay, null)
         
         params = WindowManager.LayoutParams(
@@ -30,35 +28,51 @@ class ControlOverlayService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )
-        
         params.gravity = Gravity.CENTER
         
         setupControls()
         setupDrag()
-        
         windowManager.addView(controlView, params)
     }
 
     private fun setupControls() {
-        val seekTransparency = controlView.findViewById<SeekBar>(R.id.seek_transparency)
-        seekTransparency.progress = MainOverride.transparency
-        seekTransparency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        val seekTrans = controlView.findViewById<SeekBar>(R.id.seek_transparency)
+        seekTrans.progress = MainOverride.transparency
+        seekTrans.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
                 MainOverride.transparency = p1
+                // Real-time feedback would require a broadcast or direct reference
             }
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
         
-        controlView.findViewById<View>(R.id.btn_close_settings).setOnClickListener {
-            stopSelf()
-        }
+        controlView.findViewById<View>(R.id.btn_close_control).setOnClickListener { stopSelf() }
     }
 
     private fun setupDrag() {
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+
         controlView.findViewById<View>(R.id.control_header).setOnTouchListener { _, event ->
-            // Drag implementation logic here
-            true
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    params.x = initialX + (event.rawX - initialTouchX).toInt()
+                    params.y = initialY + (event.rawY - initialTouchY).toInt()
+                    windowManager.updateViewLayout(controlView, params)
+                    true
+                }
+                else -> false
+            }
         }
     }
 

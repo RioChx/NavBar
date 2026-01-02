@@ -1,5 +1,7 @@
 package com.example.tvnavbar
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
-class MainActivity : AppCompatActivity() { override fun onCreate(s: Bundle?) { super.onCreate(s); startService(Intent(this, FloatingNavService::class.java)); finish() } }
+class MainActivity : AppCompatActivity() { override fun onCreate(s: Bundle?) { super.onCreate(s); if (!Settings.canDrawOverlays(this)) { val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")); startActivity(intent) } else { startService(Intent(this, FloatingNavService::class.java)); finish() } } }
