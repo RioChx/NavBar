@@ -63,7 +63,6 @@ class FloatingNavService : Service() {
         val btnSettings = floatingView.findViewById<ImageView>(R.id.btn_settings)
         val btnClose = floatingView.findViewById<ImageView>(R.id.btn_close)
         
-        // Hover Logic: Initially Gone
         btnSettings.visibility = View.GONE
         btnClose.visibility = View.GONE
 
@@ -132,7 +131,6 @@ class FloatingNavService : Service() {
                 val colon = if (blinkState) ":" else " "
                 val timeStr = SimpleDateFormat("hh" + "'" + colon + "'" + "mm a", Locale.US).format(calendar.time)
                 
-                // Style AM/PM suffix smaller
                 val spannable = SpannableString(timeStr)
                 if (timeStr.length > 3) {
                     spannable.setSpan(RelativeSizeSpan(0.6f), timeStr.length - 2, timeStr.length, 0)

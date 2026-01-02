@@ -5,9 +5,9 @@ import android.graphics.Typeface
 
 /**
  * MANDATORY: The single source of truth for all UI settings.
+ * Synchronized with simulator values.
  */
 object MainOverride {
-    // Global Variables
     var backgroundColor = 0xFF1A1A1A
     var transparency = 85 // 0-100
     var scale = 1f

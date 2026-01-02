@@ -45,7 +45,6 @@ class ControlOverlayService : Service() {
         seekTransparency.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
                 MainOverride.transparency = p1
-                // Note: In a real app, use an EventBus or Broadcast to notify NavService
             }
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
@@ -58,7 +57,7 @@ class ControlOverlayService : Service() {
 
     private fun setupDrag() {
         controlView.findViewById<View>(R.id.control_header).setOnTouchListener { _, event ->
-            // Similar drag logic as NavService
+            // Drag implementation logic here
             true
         }
     }
