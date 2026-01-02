@@ -60,6 +60,7 @@ class FloatingNavService : Service() {
         btnClose.visibility = View.GONE
         btnSettings.visibility = View.GONE
 
+        // Hover logic for extra controls
         floatingView.setOnHoverListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_HOVER_ENTER -> {
@@ -74,12 +75,17 @@ class FloatingNavService : Service() {
             false
         }
 
+        // Navigation Actions
         floatingView.findViewById<ImageView>(R.id.btn_home).setOnClickListener {
             val intent = Intent(Intent.ACTION_MAIN).apply {
                 addCategory(Intent.CATEGORY_HOME)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             startActivity(intent)
+        }
+        
+        floatingView.findViewById<ImageView>(R.id.btn_back).setOnClickListener {
+            // Back action requires Accessibility Service or Instrumentation
         }
 
         btnSettings.setOnClickListener {
@@ -91,6 +97,7 @@ class FloatingNavService : Service() {
             stopSelf()
         }
 
+        // Double Click to Minimize
         val clockContainer = floatingView.findViewById<View>(R.id.clock_container)
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -144,7 +151,9 @@ class FloatingNavService : Service() {
                 val dateStr = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(cal.time)
                 
                 val span = SpannableString(timeStr)
-                if (timeStr.length > 3) span.setSpan(RelativeSizeSpan(0.6f), timeStr.length - 2, timeStr.length, 0)
+                if (timeStr.length > 3) {
+                    span.setSpan(RelativeSizeSpan(0.6f), timeStr.length - 2, timeStr.length, 0)
+                }
                 
                 tvTime.text = span
                 tvTime.setTextColor(MainOverride.textColorTime)

@@ -3,6 +3,9 @@ package com.example.tvnavbar
 import android.graphics.Color
 import android.graphics.Typeface
 
+/**
+ * MANDATORY: Single source of truth for UI settings.
+ */
 object MainOverride {
     var backgroundColor = 0xFF1A1A1A
     var transparency = 85

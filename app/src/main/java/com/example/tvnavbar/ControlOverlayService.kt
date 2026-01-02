@@ -41,7 +41,6 @@ class ControlOverlayService : Service() {
         seekTrans.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
                 MainOverride.transparency = p1
-                // Real-time feedback would require a broadcast or direct reference
             }
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
