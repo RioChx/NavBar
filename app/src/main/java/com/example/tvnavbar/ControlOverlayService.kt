@@ -21,7 +21,7 @@ class ControlOverlayService : Service() {
         controlView = LayoutInflater.from(this).inflate(R.layout.layout_control_overlay, null)
         
         params = WindowManager.LayoutParams(
-            650, WindowManager.LayoutParams.WRAP_CONTENT,
+            750, WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
@@ -43,23 +43,11 @@ class ControlOverlayService : Service() {
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
-
-        val sScale = controlView.findViewById<SeekBar>(R.id.seek_scale)
-        sScale.progress = (MainOverride.scale * 50).toInt()
-        sScale.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
-                MainOverride.scale = p1 / 50f
-                MainOverride.notifyUpdate()
-            }
-            override fun onStartTrackingTouch(p0: SeekBar?) {}
-            override fun onStopTrackingTouch(p0: SeekBar?) {}
-        })
-        
         controlView.findViewById<View>(R.id.btn_close_control).setOnClickListener { stopSelf() }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::controlView.isInitialized) windowManager.removeView(controlView)
+        if (::controlView.isInitialized) try { windowManager.removeView(controlView) } catch(e: Exception) {}
     }
 }
