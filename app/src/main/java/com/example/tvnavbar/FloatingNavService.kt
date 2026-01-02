@@ -52,6 +52,8 @@ class FloatingNavService : Service() {
     private fun setupUI() {
         val root = floatingView.findViewById<LinearLayout>(R.id.nav_root)
         root.setBackgroundResource(R.drawable.bg_nav_pill)
+        
+        // Fixed: MainOverride.backgroundColor is now Int
         root.background?.setTint(MainOverride.backgroundColor)
         root.alpha = MainOverride.transparency / 100f
         root.scaleX = MainOverride.scale
@@ -148,9 +150,11 @@ class FloatingNavService : Service() {
                 val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 val dateStr = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(cal.time)
                 
-                // Build styled time string (Time numeric + AM/PM suffix)
+                // Build styled time string
                 val builder = SpannableStringBuilder()
                 builder.append(timeNumeric)
+                
+                // Fixed: ForegroundColorSpan now receives Int
                 builder.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, builder.length, 0)
                 
                 val ampmStart = builder.length
