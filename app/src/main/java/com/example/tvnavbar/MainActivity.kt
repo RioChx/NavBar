@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
                 startService(intent)
             }
         }
+        // Essential: Finish activity to prevent background window persistence
         finish()
     }
 }
