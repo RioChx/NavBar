@@ -7,7 +7,6 @@ import android.graphics.PixelFormat
 import android.os.IBinder
 import android.view.*
 import android.widget.SeekBar
-import android.widget.TextView
 
 class ControlOverlayService : Service() {
     private lateinit var windowManager: WindowManager
@@ -32,7 +31,12 @@ class ControlOverlayService : Service() {
         
         setupControls()
         setupDrag()
-        windowManager.addView(controlView, params)
+        
+        try {
+            windowManager.addView(controlView, params)
+        } catch (e: Exception) {
+            stopSelf()
+        }
     }
 
     private fun setupControls() {
@@ -45,7 +49,6 @@ class ControlOverlayService : Service() {
             override fun onStartTrackingTouch(p0: SeekBar?) {}
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
-        
         controlView.findViewById<View>(R.id.btn_close_control).setOnClickListener { stopSelf() }
     }
 
@@ -77,6 +80,6 @@ class ControlOverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::controlView.isInitialized) windowManager.removeView(controlView)
+        if (::controlView.isInitialized) try { windowManager.removeView(controlView) } catch (e: Exception) {}
     }
 }

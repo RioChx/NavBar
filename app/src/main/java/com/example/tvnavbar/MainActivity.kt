@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
             } else {
                 startService(serviceIntent)
             }
-            // Close activity immediately to prevent white screen
             finish()
         }
     }

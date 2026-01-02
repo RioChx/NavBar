@@ -1,11 +1,11 @@
 package com.example.tvnavbar
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -31,23 +31,16 @@ class FloatingNavService : Service() {
     private var isMinimized = false
 
     companion object {
-        private const val CHANNEL_ID = "TvNavServiceChannel"
-        private const val NOTIFICATION_ID = 1
+        private const val CHANNEL_ID = "TvNavChannel"
+        private const val NOTIFICATION_ID = 101
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("TV Nav Bar Active")
-            .setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .build()
+        initForeground()
         
-        startForeground(NOTIFICATION_ID, notification)
-
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_nav, null)
         
@@ -64,17 +57,32 @@ class FloatingNavService : Service() {
         setupUI()
         setupDrag()
         startClock()
-        windowManager.addView(floatingView, params)
+        
+        try {
+            windowManager.addView(floatingView, params)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            stopSelf()
+        }
     }
 
-    private fun createNotificationChannel() {
+    private fun initForeground() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val serviceChannel = NotificationChannel(
-                CHANNEL_ID, "TV Navigation Service Channel",
-                NotificationManager.IMPORTANCE_LOW
-            )
+            val channel = NotificationChannel(CHANNEL_ID, "TV Nav Bar", NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(serviceChannel)
+            manager.createNotificationChannel(channel)
+        }
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Floating Nav Active")
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .setOngoing(true)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
         }
     }
 
@@ -114,12 +122,8 @@ class FloatingNavService : Service() {
         }
 
         btnSettings.setOnClickListener {
-            val intent = Intent(this, ControlOverlayService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
+            // Fix: Use standard startService for sub-overlays to prevent crash
+            startService(Intent(this, ControlOverlayService::class.java))
         }
 
         btnClose.setOnClickListener {
@@ -206,7 +210,7 @@ class FloatingNavService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::floatingView.isInitialized) windowManager.removeView(floatingView)
+        if (::floatingView.isInitialized) try { windowManager.removeView(floatingView) } catch (e: Exception) {}
         handler.removeCallbacksAndMessages(null)
     }
 }
