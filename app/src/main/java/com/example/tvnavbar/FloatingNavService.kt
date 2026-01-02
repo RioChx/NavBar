@@ -148,20 +148,20 @@ class FloatingNavService : Service() {
                 val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 val dateStr = SimpleDateFormat("EEE dd MMM yyyy", Locale.US).format(cal.time)
                 
-                // Build styled time string (2 different text styles in one view)
+                // Build styled time string (Time numeric + AM/PM suffix)
                 val builder = SpannableStringBuilder()
                 builder.append(timeNumeric)
                 builder.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, builder.length, 0)
                 
                 val ampmStart = builder.length
                 builder.append(ampm)
-                builder.setSpan(RelativeSizeSpan(0.5f), ampmStart, builder.length, 0)
+                builder.setSpan(RelativeSizeSpan(0.6f), ampmStart, builder.length, 0)
                 builder.setSpan(ForegroundColorSpan(MainOverride.colorAmPm), ampmStart, builder.length, 0)
                 
                 tvTime.text = builder
                 tvTime.typeface = MainOverride.getTypeface()
                 
-                // 3rd style: Date
+                // Date styling
                 tvDate.text = dateStr
                 tvDate.setTextColor(MainOverride.colorDate)
                 tvDate.typeface = MainOverride.getTypeface()
