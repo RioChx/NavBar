@@ -26,6 +26,7 @@ class FloatingNavService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // MUST call this before anything else on Android 13
         startForegroundSafe()
         
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -51,12 +52,13 @@ class FloatingNavService : Service() {
         try {
             windowManager.addView(floatingView, params)
         } catch (e: Exception) {
+            e.printStackTrace()
             stopSelf()
         }
     }
 
     private fun startForegroundSafe() {
-        val channelId = "tv_nav_channel_v3"
+        val channelId = "tv_nav_channel_v4"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val chan = NotificationChannel(channelId, "TV Bar Service", NotificationManager.IMPORTANCE_LOW)
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -64,10 +66,10 @@ class FloatingNavService : Service() {
         }
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setContentTitle("Floating Navigation Active")
+            .setContentTitle("TV NavBar Running")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
-        startForeground(3003, notification)
+        startForeground(4004, notification)
     }
 
     private fun applyVisuals() {
@@ -83,18 +85,19 @@ class FloatingNavService : Service() {
         val btnClose = floatingView.findViewById<View>(R.id.btn_close)
         val btnSettings = floatingView.findViewById<View>(R.id.btn_settings)
         
+        // Use ViewPropertyAnimator for smooth fading
         btnClose.alpha = 0f
         btnSettings.alpha = 0f
 
         floatingView.setOnHoverListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_HOVER_ENTER -> {
-                    btnClose.animate().alpha(1f).setDuration(200).start()
-                    btnSettings.animate().alpha(1f).setDuration(200).start()
+                    btnClose.animate().alpha(1f).setDuration(250).start()
+                    btnSettings.animate().alpha(1f).setDuration(250).start()
                 }
                 MotionEvent.ACTION_HOVER_EXIT -> {
-                    btnClose.animate().alpha(0f).setDuration(200).start()
-                    btnSettings.animate().alpha(0f).setDuration(200).start()
+                    btnClose.animate().alpha(0f).setDuration(250).start()
+                    btnSettings.animate().alpha(0f).setDuration(250).start()
                 }
             }
             false
@@ -106,7 +109,7 @@ class FloatingNavService : Service() {
         }
 
         floatingView.findViewById<View>(R.id.btn_recents).setOnClickListener {
-            Toast.makeText(this, "Recents Triggered", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Recents Pressed", Toast.LENGTH_SHORT).show()
         }
 
         btnSettings.setOnClickListener {
@@ -166,13 +169,14 @@ class FloatingNavService : Service() {
                 val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 
                 val ss = SpannableStringBuilder(timeStr)
-                ss.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, ss.length, 0)
-                ss.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, ss.length, 0)
+                // Use explicit constants to avoid compiler ambiguity
+                ss.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ss.setSpan(StyleSpan(Typeface.BOLD), 0, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 
                 val startAmPm = ss.length
                 ss.append(ampm)
-                ss.setSpan(RelativeSizeSpan(0.5f), startAmPm, ss.length, 0)
-                ss.setSpan(ForegroundColorSpan(MainOverride.colorAmPm), startAmPm, ss.length, 0)
+                ss.setSpan(RelativeSizeSpan(0.5f), startAmPm, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ss.setSpan(ForegroundColorSpan(MainOverride.colorAmPm), startAmPm, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 
                 tvTime.text = ss
                 tvTime.typeface = MainOverride.getTypeface()
