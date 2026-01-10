@@ -1,5 +1,7 @@
 package com.example.tvnavbar
 
+import android.accessibilityservice.AccessibilityService
+import android.view.accessibility.AccessibilityEvent
 import android.app.*
 import android.content.*
 import android.graphics.PixelFormat
@@ -14,7 +16,7 @@ import androidx.core.app.NotificationCompat
 import java.text.SimpleDateFormat
 import java.util.*
 
-class FloatingNavService : Service() {
+class FloatingNavService : AccessibilityService() {
     private lateinit var windowManager: WindowManager
     private lateinit var floatingView: View
     private lateinit var params: WindowManager.LayoutParams
@@ -22,14 +24,13 @@ class FloatingNavService : Service() {
     private var blinkState = true
     private var isMinimized = false
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    override fun onInterrupt() {}
 
-    override fun onCreate() {
-        super.onCreate()
-        // MUST call this before anything else on Android 13
-        startForegroundSafe()
-        
+    override fun onServiceConnected() {
+        super.onServiceConnected()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        
         floatingView = LayoutInflater.from(this).inflate(R.layout.layout_floating_nav, null)
         
         params = WindowManager.LayoutParams(
@@ -53,23 +54,7 @@ class FloatingNavService : Service() {
             windowManager.addView(floatingView, params)
         } catch (e: Exception) {
             e.printStackTrace()
-            stopSelf()
         }
-    }
-
-    private fun startForegroundSafe() {
-        val channelId = "tv_nav_channel_v4"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, "TV Bar Service", NotificationManager.IMPORTANCE_LOW)
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(chan)
-        }
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setContentTitle("TV NavBar Running")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-        startForeground(4004, notification)
     }
 
     private fun applyVisuals() {
@@ -85,31 +70,33 @@ class FloatingNavService : Service() {
         val btnClose = floatingView.findViewById<View>(R.id.btn_close)
         val btnSettings = floatingView.findViewById<View>(R.id.btn_settings)
         
-        // Use ViewPropertyAnimator for smooth fading
         btnClose.alpha = 0f
         btnSettings.alpha = 0f
 
         floatingView.setOnHoverListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_HOVER_ENTER -> {
-                    btnClose.animate().alpha(1f).setDuration(250).start()
-                    btnSettings.animate().alpha(1f).setDuration(250).start()
+                    btnClose.animate().alpha(1f).setDuration(200).start()
+                    btnSettings.animate().alpha(1f).setDuration(200).start()
                 }
                 MotionEvent.ACTION_HOVER_EXIT -> {
-                    btnClose.animate().alpha(0f).setDuration(250).start()
-                    btnSettings.animate().alpha(0f).setDuration(250).start()
+                    btnClose.animate().alpha(0f).setDuration(200).start()
+                    btnSettings.animate().alpha(0f).setDuration(200).start()
                 }
             }
             false
         }
 
+        floatingView.findViewById<View>(R.id.btn_back).setOnClickListener {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        }
+
         floatingView.findViewById<View>(R.id.btn_home).setOnClickListener {
-            val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
+            performGlobalAction(GLOBAL_ACTION_HOME)
         }
 
         floatingView.findViewById<View>(R.id.btn_recents).setOnClickListener {
-            Toast.makeText(this, "Recents Pressed", Toast.LENGTH_SHORT).show()
+            performGlobalAction(GLOBAL_ACTION_RECENTS)
         }
 
         btnSettings.setOnClickListener {
@@ -117,8 +104,7 @@ class FloatingNavService : Service() {
         }
 
         btnClose.setOnClickListener {
-            stopService(Intent(this, ControlOverlayService::class.java))
-            stopSelf()
+            disableSelf()
         }
 
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -169,9 +155,8 @@ class FloatingNavService : Service() {
                 val ampm = SimpleDateFormat(" a", Locale.US).format(cal.time)
                 
                 val ss = SpannableStringBuilder(timeStr)
-                // Use explicit constants to avoid compiler ambiguity
                 ss.setSpan(ForegroundColorSpan(MainOverride.colorTimeNumeric), 0, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                ss.setSpan(StyleSpan(Typeface.BOLD), 0, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ss.setSpan(StyleSpan(android.graphics.Typeface.BOLD), 0, ss.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 
                 val startAmPm = ss.length
                 ss.append(ampm)

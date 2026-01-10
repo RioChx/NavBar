@@ -3,8 +3,16 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <application android:label="TV NavBar" android:theme="@android:style/Theme.NoDisplay">
-        <service android:name=".FloatingNavService" android:exported="false" />
+    <application android:label="TV NavBar Pro" android:theme="@android:style/Theme.NoDisplay">
+        <service android:name=".FloatingNavService"
+                 android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+                 android:exported="false">
+            <intent-filter>
+                <action android:name="android.view.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice"
+                       android:resource="@xml/accessibility_service_config" />
+        </service>
         <service android:name=".ControlOverlayService" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true" android:excludeFromRecents="true">
             <intent-filter>
